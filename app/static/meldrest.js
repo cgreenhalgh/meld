@@ -133,7 +133,7 @@ function applyActions(actions, target, actionid, annotationid) {
             } else if (actions[a]["@type"] === "meldterm:QueueAnnoState") { 
                 applyQueueAnnoState(target, actions[a]["annoStateToQueue"], annotationid);
             } else if (actions[a]["@type"] === "meldterm:NextPageOrPiece") { 
-                applyNextPageOrPiece(target, annotationid);
+                applyNextPageOrPiece(target, annotationid, actions[a]["forceNextPiece"]);
             } else if (actions[a]["@type"] === "meldterm:PreviousPageOrPiece") { 
                 applyPreviousPageOrPiece(target, annotationid);
             } else if (actions[a]["@type"] === "meldterm:Emphasis") { 
@@ -225,9 +225,9 @@ function applyQueueAnnoState(target, annostate, annotationid) {
     });
 }
 
-function applyNextPageOrPiece(target, annotationid) { 
+function applyNextPageOrPiece(target, annotationid, forceNextPiece) { 
     // 1. Call loadPage to progress to next page, or to the queued piece (annostate)
-    loadPage();
+    loadPage(forceNextPiece);
     // 2. PATCH to /annostate with this annotationid to say it's handled
     $.ajax({
         type: "PATCH", 
@@ -322,14 +322,14 @@ function getTargetId(target) {
 }
 
 
-function loadPage() {
+function loadPage(forceNextPiece) {
     clearAnnotations();
     if(jumpToPage) { 
         // an action handler wants to jump to a specific page
         currentPage = jumpToPage;
         jumpToPage = "";
     } else { 
-        if(currentPage < vrvToolkit.getPageCount()) {
+        if(!forceNextPiece && currentPage < vrvToolkit.getPageCount()) {
             // go to the next page
             currentPage++;
         } else if (queuedAnnoState) { 
@@ -557,6 +557,24 @@ function generateMenu() {
 
 
 $(document).ready(function() { 
+	$(document).on('keydown', function(ev) {
+		switch(ev.which) {
+		case 34://page down
+		case 39://right
+		case 40://down
+			console.log('next (key)');
+			nextPage();
+			break;
+		case 33://page up
+		case 37://left
+		case 38://up
+			console.log('prev (key)');
+			prevPage();
+			break;
+		default:
+			console.log('ignore key: '+ev.which);
+		}
+	});
     var options = JSON.stringify({
         ignoreLayout: 1,
         adjustPageHeight: 1,
