@@ -575,11 +575,13 @@ $(document).ready(function() {
 			console.log('ignore key: '+ev.which);
 		}
 	});
+	var scale = 35;
     var options = JSON.stringify({
         ignoreLayout: 1,
         adjustPageHeight: 1,
-        scale:50, 
-				pageHeight: 2000
+        scale:scale, 
+				pageHeight: 760*100/scale,
+				pageWidth: 1200*100/scale
     });
     vrvToolkit.setOptions(options);
     currentPage = 1;
