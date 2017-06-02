@@ -563,12 +563,14 @@ $(document).ready(function() {
 		case 39://right
 		case 40://down
 			console.log('next (key)');
+			ev.preventDefault();
 			nextPage();
 			break;
 		case 33://page up
 		case 37://left
 		case 38://up
 			console.log('prev (key)');
+			ev.preventDefault();
 			prevPage();
 			break;
 		default:
