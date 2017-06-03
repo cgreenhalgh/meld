@@ -21,6 +21,11 @@ var queuedMei;
 var errorCount = 0;
 var retryLimit = 10;
 
+// avoid some unnecessary reloading/redrawing
+var annostateMei;
+var loadedMei;
+var visiblePage;
+
 function preInitBoundingBoxes() { 
     // draw a basic (lowest-level-above-score) bounding box for every measure
     // to carry the contextual menu
@@ -402,16 +407,23 @@ function updateIndicator() {
 };
 
 function drawPage() { 
+  if(annostateMei!=loadedMei) {
     if(typeof scorePageMei === "object") { 
         var oSerializer = new XMLSerializer();
         scorePageMei = oSerializer.serializeToString(scorePageMei)
     }
     vrvToolkit.loadData(scorePageMei);
-    updateIndicator();
+    loadedMei = annostateMei;
+    visiblePage = null;
+  }
+  if(currentPage!=visiblePage) {
     var svg = vrvToolkit.renderPage(currentPage);
     $("#thescore").html(svg);
     /* "pre"-init bounding boxes for each measure on page, adding context menu handlers */ 
-    preInitBoundingBoxes()
+    preInitBoundingBoxes();
+    visiblePage = currentPage;
+  }
+    updateIndicator();
         /* now process RDF */
         processRdf();
     /* and clean up */ 
@@ -470,24 +482,36 @@ function refresh() {
         // if we are separating by voice, request the corresponding voice num
         //TODO make this bit more semantic; shouldn't be hacking the window URI...
         var meiFile = annotationGraph["@graph"][0]["oa:hasTarget"][0]["@id"];
-        //console.log(annotationGraph["@graph"][0]["oa:hasTarget"]);
-        var pageUri= window.location.pathname;
-        var voice = parseInt(pageUri.substr(pageUri.lastIndexOf('/')+1));
-        $.get(meiFile, function(meiData) { 
-            if(voice) { 
-                // separate out this voice
-                var elements = meiData.evaluate('//mei:staffDef[attribute::n] | //mei:staff[attribute::n]', meiData, function(prefix) { ns = { "mei": "http://www.music-encoding.org/ns/mei"}; return ns[prefix] || null}, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
-                for(var e=0; e < elements.snapshotLength; e++) { 
-                    element = elements.snapshotItem(e);
-                    // delete elements for other voices
-                    if($(element).attr("n") != voice) { 
-                        element.parentNode.removeChild(element);
-                    }
-                }
+        if (meiFile!=annostateMei) {
+          //console.log(annotationGraph["@graph"][0]["oa:hasTarget"]);
+          var pageUri= window.location.pathname;
+          var voice = parseInt(pageUri.substr(pageUri.lastIndexOf('/')+1));
+          $.get(meiFile, function(meiData) { 
+              if(voice) { 
+                  // separate out this voice
+                  var elements = meiData.evaluate('//mei:staffDef[attribute::n] | //mei:staff[attribute::n]', meiData, function(prefix) { ns = { "mei": "http://www.music-encoding.org/ns/mei"}; return ns[prefix] || null}, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+                  for(var e=0; e < elements.snapshotLength; e++) { 
+                      element = elements.snapshotItem(e);
+                      // delete elements for other voices
+                      if($(element).attr("n") != voice) { 
+                          element.parentNode.removeChild(element);
+                      }
+                  }
 
-            }
-            scorePageMei = meiData;
-        }).done(function() { 
+              }
+              scorePageMei = meiData;
+              annostateMei = meiFile;
+          }).done(function() { 
+              if(!queuedAnnoState && currentPage === vrvToolkit.getPageCount()) { 
+                  $("#nextButton").prop('disabled', true);
+              } else { 
+                  $("#nextButton").prop('disabled', false);
+              }
+              drawPage();
+              errorCount = 0;
+              setTimeout(refresh, 50);
+          });
+        } else {
             if(!queuedAnnoState && currentPage === vrvToolkit.getPageCount()) { 
                 $("#nextButton").prop('disabled', true);
             } else { 
@@ -495,13 +519,13 @@ function refresh() {
             }
             drawPage();
             errorCount = 0;
-            setTimeout(refresh, 20);
-        });
+            setTimeout(refresh, 50);          	
+        }
     }).fail(function(xhr, textStatus) { 
         if(errorCount < retryLimit){
             errorCount++;
             // try again
-            setTimeout(refresh, 20);
+            setTimeout(refresh, 50);
         } else { 
             $("#indicator").append(" | <span style='color:red;'>Sorry, giving up: "+textStatus+". Try refreshing the page?</span>");
         }
