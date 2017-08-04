@@ -1,6 +1,7 @@
 $.ajaxSetup({timeout: 1000});
 
 var vrvToolkit = new verovio.toolkit();
+console.log('verovio version '+vrvToolkit.getVersion());
 var annotationGraph;
 var scorePageMei;
 var currentPage;
@@ -339,6 +340,7 @@ function loadPage(forceNextPiece) {
             currentPage++;
         } else if (queuedAnnoState) { 
             // redirect the client to view the queued annostate
+        	console.log('load new page');
             window.location.href = baseuri + "/viewer?annostate=" + queuedAnnoState;
         } else { 
             // on last page; do nothing
@@ -348,6 +350,7 @@ function loadPage(forceNextPiece) {
 }
 
 function nextPage() { 
+	console.log('next page...');
     $.post(
         annotationGraph["@graph"][0]["@id"],
         JSON.stringify({
@@ -360,6 +363,7 @@ function nextPage() {
 }
 
 function prevPage() { 
+	console.log('prev page...');
     $.post(
         annotationGraph["@graph"][0]["@id"],
         JSON.stringify({
@@ -417,11 +421,12 @@ function drawPage() {
     visiblePage = null;
   }
   if(currentPage!=visiblePage) {
-    var svg = vrvToolkit.renderPage(currentPage);
+    var svg = vrvToolkit.renderPage(currentPage, {});
     $("#thescore").html(svg);
     /* "pre"-init bounding boxes for each measure on page, adding context menu handlers */ 
     preInitBoundingBoxes();
     visiblePage = currentPage;
+    console.log('rendered page '+currentPage);
   }
     updateIndicator();
         /* now process RDF */
@@ -602,13 +607,13 @@ $(document).ready(function() {
 		}
 	});
 	var scale = 35;
-    var options = JSON.stringify({
+    var options = {
         ignoreLayout: 1,
         adjustPageHeight: 1,
         scale:scale, 
 				pageHeight: 760*100/scale,
 				pageWidth: 1200*100/scale
-    });
+    };
     vrvToolkit.setOptions(options);
     currentPage = 1;
     queuedAnnoState = "";
