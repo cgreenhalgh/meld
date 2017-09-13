@@ -8,3 +8,16 @@ This repository contains the MELD demonstrator.
 
 By default, it will run on localhost port 5000. 
 
+## Docker
+
+Python 2.7.6
+
+```
+docker build -t meld .
+```
+
+Run once
+```
+docker run -it --rm --name=meld meld
+```
+
